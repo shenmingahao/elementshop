@@ -17,8 +17,8 @@
 
         <el-table-column fixed="right" align="center" label="操作">
           <template slot-scope="scope">
-            <!--<el-button @click="updateForm(scope.row.id)" type="text" size="small">修改</el-button>
-            <el-button @click="deleteBrand(scope.row.id)" type="text" size="small">删除</el-button>-->
+            <el-button @click="updateForm(scope.row.id)" type="text" size="small">修改</el-button>
+            <!--<el-button @click="deleteBrand(scope.row.id)" type="text" size="small">删除</el-button>-->
           </template>
         </el-table-column>
       </el-table>
@@ -89,6 +89,63 @@
         </div>
       </el-dialog>
 
+      <!--  修改弹框 -->
+      <el-dialog title="新增属性信息" :visible.sync="updateFormFlag">
+
+        <el-form :model="updateAttr" ref="addAttrForm"   label-width="80px">
+
+          <el-form-item label="英文名称" prop="name">
+            <el-col :span="8" :offset="6">
+              <el-input v-model="updateAttr.name" autocomplete="off" ></el-input>
+            </el-col>
+          </el-form-item>
+
+          <el-form-item label="中文名称" prop="nameCH">
+            <el-col :span="8" :offset="6">
+              <el-input v-model="updateAttr.nameCH" autocomplete="off" ></el-input>
+            </el-col>
+          </el-form-item>
+
+          <el-form-item label="分类" prop="typeId">
+            <el-col :span="8" :offset="6">
+              <el-select v-model="updateAttr.typeId" placeholder="请选择">
+                <el-option
+                  v-for="item in typeData"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id">
+                </el-option>
+              </el-select>
+            </el-col>
+          </el-form-item>
+
+          <el-form-item label="类型" prop="type">
+            <el-col :span="20" :offset="2">
+              <el-radio-group v-model="updateAttr.type">
+                <el-radio :label="0" name="type">下拉框</el-radio>
+                <el-radio :label="1" name="type">单选框</el-radio>
+                <el-radio :label="2" name="type">复选框</el-radio>
+                <el-radio :label="3" name="type">输入框</el-radio>
+              </el-radio-group>
+            </el-col>
+          </el-form-item>
+
+          <el-form-item label="SKU属性" prop="isSkU">
+            <el-col :span="12" :offset="5">
+              <el-radio-group v-model="updateAttr.isSkU">
+                <el-radio :label="1" name="type">是</el-radio>
+                <el-radio :label="2" name="type">否</el-radio>
+              </el-radio-group>
+            </el-col>
+          </el-form-item>
+
+        </el-form>
+        <div slot="footer" class="dialog-footer" align="center">
+          <el-button @click="addFormFlag=false">取 消</el-button>
+          <el-button type="primary" @click="updateAttrForm">确 定</el-button>
+        </div>
+      </el-dialog>
+
     </div>
 </template>
 
@@ -104,7 +161,16 @@
             param:{},
             typeData:[],
             addFormFlag:false,
-            data:{}
+            data:{},
+            updateFormFlag:false,
+            updateAttr:{
+              id:"",
+              name:"",
+              nameCH:"",
+              typeId:"",
+              type:"",
+              isSkU:""
+            }
           }
       },
       created:function () {
@@ -146,6 +212,26 @@
           this.$axios.post("http://localhost:8080/api/attribute/addAttribute",this.$qs.stringify(this.data)).then(rs=>{
             //关闭弹窗
             this.addFormFlag = false;
+            //调用查询方法  刷新表格数据
+            this.queryAttrData(1);
+          }).catch(err=>console.log(err));
+        },
+        updateForm:function (id) {
+          this.updateFormFlag = true;
+          var data = {id:id};
+          this.$axios.post("http://localhost:8080/api/attribute/huixian",this.$qs.stringify(data)).then(rs=>{
+            this.updateAttr.id = rs.data.data.id;
+            this.updateAttr.name = rs.data.data.name;
+            this.updateAttr.nameCH = rs.data.data.nameCH;
+            this.updateAttr.typeId = rs.data.data.typeId;
+            this.updateAttr.type = rs.data.data.type;
+            this.updateAttr.isSkU = rs.data.data.isSkU;
+          }).catch(err=>console.log(err));
+        },
+        updateAttrForm:function () {
+          this.$axios.post("http://localhost:8080/api/attribute/updateAttribute",this.$qs.stringify(this.updateAttr)).then(rs=>{
+            //关闭弹窗
+            this.updateFormFlag = false;
             //调用查询方法  刷新表格数据
             this.queryAttrData(1);
           }).catch(err=>console.log(err));
