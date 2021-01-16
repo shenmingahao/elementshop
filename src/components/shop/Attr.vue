@@ -1,7 +1,7 @@
 <template>
     <div align="center">
       <h1>属性列表</h1>
-      <!--<el-button type="primary" round @click="addFormFlag=true" size="small">新增</el-button>-->
+      <el-button type="primary" round @click="addFormFlag=true" size="small">新增</el-button>
 
       <el-table :data="attrData" border style="width: 100%">
 
@@ -11,7 +11,7 @@
 
         <el-table-column fixed align="center" prop="nameCH" label="中文名称"></el-table-column>
 
-        <el-table-column fixed align="center" prop="typeId" label="类型" :formatter="onLineType"></el-table-column>
+        <el-table-column fixed align="center" prop="typeId" label="分类" :formatter="onLineType"></el-table-column>
 
         <el-table-column fixed align="center" prop="isSkU" label="SKU属性" :formatter="onLineSku"></el-table-column>
 
@@ -32,6 +32,63 @@
         :total="count">
       </el-pagination>
 
+      <!--  新增弹框 -->
+      <el-dialog title="新增属性信息" :visible.sync="addFormFlag">
+
+        <el-form :model="data" ref="addAttrForm"   label-width="80px">
+
+          <el-form-item label="英文名称" prop="name">
+            <el-col :span="8" :offset="6">
+              <el-input v-model="data.name" autocomplete="off" ></el-input>
+            </el-col>
+          </el-form-item>
+
+          <el-form-item label="中文名称" prop="name">
+            <el-col :span="8" :offset="6">
+              <el-input v-model="data.nameCH" autocomplete="off" ></el-input>
+            </el-col>
+          </el-form-item>
+
+          <el-form-item label="分类" prop="typeId">
+            <el-col :span="8" :offset="6">
+              <el-select v-model="data.typeId" placeholder="请选择">
+                <el-option
+                  v-for="item in typeData"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id">
+                </el-option>
+              </el-select>
+            </el-col>
+          </el-form-item>
+
+          <el-form-item label="类型" prop="type">
+            <el-col :span="20" :offset="2">
+              <el-radio-group v-model="data.type">
+                <el-radio label="0" name="type">下拉框</el-radio>
+                <el-radio label="1" name="type">单选框</el-radio>
+                <el-radio label="2" name="type">复选框</el-radio>
+                <el-radio label="3" name="type">输入框</el-radio>
+              </el-radio-group>
+            </el-col>
+          </el-form-item>
+
+          <el-form-item label="SKU属性" prop="isSkU">
+            <el-col :span="12" :offset="5">
+              <el-radio-group v-model="data.isSkU">
+                <el-radio label="1" name="type">是</el-radio>
+                <el-radio label="2" name="type">否</el-radio>
+              </el-radio-group>
+            </el-col>
+          </el-form-item>
+
+        </el-form>
+        <div slot="footer" class="dialog-footer" align="center">
+          <el-button @click="addFormFlag=false">取 消</el-button>
+          <el-button type="primary" @click="addAttrForm">确 定</el-button>
+        </div>
+      </el-dialog>
+
     </div>
 </template>
 
@@ -45,7 +102,9 @@
             sizes:[5,8,10,20],
             size:5,
             param:{},
-            typeData:[]
+            typeData:[],
+            addFormFlag:false,
+            data:{}
           }
       },
       created:function () {
@@ -82,6 +141,14 @@
         },
         onLineSku:function (row , column) {
           return row.isSkU==1?"是":row.isSkU==2?"否":"";
+        },
+        addAttrForm:function () {
+          this.$axios.post("http://localhost:8080/api/attribute/addAttribute",this.$qs.stringify(this.data)).then(rs=>{
+            //关闭弹窗
+            this.addFormFlag = false;
+            //调用查询方法  刷新表格数据
+            this.queryAttrData(1);
+          }).catch(err=>console.log(err));
         }
       }
     }
