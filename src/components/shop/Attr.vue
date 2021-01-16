@@ -18,7 +18,7 @@
         <el-table-column fixed="right" align="center" label="操作">
           <template slot-scope="scope">
             <el-button @click="updateForm(scope.row.id)" type="text" size="small">修改</el-button>
-            <!--<el-button @click="deleteBrand(scope.row.id)" type="text" size="small">删除</el-button>-->
+            <el-button @click="deleteAttr(scope.row.id)" type="text" size="small">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -232,6 +232,13 @@
           this.$axios.post("http://localhost:8080/api/attribute/updateAttribute",this.$qs.stringify(this.updateAttr)).then(rs=>{
             //关闭弹窗
             this.updateFormFlag = false;
+            //调用查询方法  刷新表格数据
+            this.queryAttrData(1);
+          }).catch(err=>console.log(err));
+        },
+        deleteAttr:function (id) {
+          var data = {id:id};
+          this.$axios.post("http://localhost:8080/api/attribute/deleteAttribute",this.$qs.stringify(data)).then(rs=>{
             //调用查询方法  刷新表格数据
             this.queryAttrData(1);
           }).catch(err=>console.log(err));
