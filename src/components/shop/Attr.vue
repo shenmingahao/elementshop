@@ -22,7 +22,7 @@
           </template>
         </el-table-column>
       </el-table>
-      <!--  分页 -->
+      <!--  分页   -->
       <el-pagination
         @current-change="handleCurrentChange"
         @size-change="handleSizeChange"
