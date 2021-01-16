@@ -28,6 +28,11 @@ export default new Router({
           path: '/brand',
           component: () => import(/* webpackChunkName: "dashboard" */ '../components/shop/Brand.vue'),
           meta: { title: '品牌管理' }
+        },
+        {
+          path: '/attr',
+          component: () => import(/* webpackChunkName: "dashboard" */ '../components/shop/Attr.vue'),
+          meta: { title: '属性管理' }
         }
       ]
     }

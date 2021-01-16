@@ -73,6 +73,10 @@
                 {
                   index:'brand',
                   title:'品牌管理'
+                },
+                {
+                  index:'attr',
+                  title:'属性管理'
                 }
               ]
             },
