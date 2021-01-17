@@ -149,9 +149,14 @@
 
       <!-- 属性值表格 -->
       <el-dialog title="属性值信息" :visible.sync="ShowValueTable">
+
+        <el-button type="primary" round @click="addAttrValueFormFlag=true" size="small">新增</el-button>
+
         <el-table :data="attrValueData" border style="width: 100%">
 
           <el-table-column fixed align="center" prop="id" label="序号"></el-table-column>
+
+          <el-table-column fixed align="center" prop="attrName" label="属性名称"></el-table-column>
 
           <el-table-column fixed align="center" prop="name" label="英文名称"></el-table-column>
 
@@ -163,6 +168,30 @@
             </template>
           </el-table-column>
         </el-table>
+      </el-dialog>
+
+      <!--  新增属性值弹框 -->
+      <el-dialog title="新增属性值信息" :visible.sync="addAttrValueFormFlag">
+
+        <el-form :model="valueData" ref="addAttrValueForm"   label-width="80px">
+
+          <el-form-item label="英文名称" prop="name">
+            <el-col :span="8" :offset="6">
+              <el-input v-model="valueData.name" autocomplete="off" ></el-input>
+            </el-col>
+          </el-form-item>
+
+          <el-form-item label="中文名称" prop="name">
+            <el-col :span="8" :offset="6">
+              <el-input v-model="valueData.nameCH" autocomplete="off" ></el-input>
+            </el-col>
+          </el-form-item>
+
+        </el-form>
+        <div slot="footer" class="dialog-footer" align="center">
+          <el-button @click="addAttrValueFormFlag=false">取 消</el-button>
+          <el-button type="primary" @click="addAttrValue">确 定</el-button>
+        </div>
       </el-dialog>
 
     </div>
@@ -191,7 +220,12 @@
               isSkU:""
             },
             attrValueData:[],
-            ShowValueTable:false
+            ShowValueTable:false,
+            atrId:"",
+            addAttrValueFormFlag:false,
+            valueData:{
+              attrId:""
+            }
           }
       },
       created:function () {
@@ -266,10 +300,21 @@
         },
         attrValue:function (attrId) {
           this.ShowValueTable = true;
+          this.atrId = attrId;
           var data = {attrId:attrId};
           this.$axios.post("http://localhost:8080/api/attrValue/queryAttrValue" , this.$qs.stringify(data)).then(rs=>{
-
             this.attrValueData = rs.data.data;
+          }).catch(err=>console.log(err));
+        },
+        addAttrValue:function () {
+          this.valueData.attrId = this.atrId;
+          var data = this.valueData;
+          var athis = this;
+          this.$axios.post("http://localhost:8080/api/attrValue/addAttrValue" , this.$qs.stringify(data)).then(rs=>{
+            //关闭弹框
+            this.addAttrValueFormFlag=false;
+            //刷新表格
+            athis.attrValue(this.atrId);
           }).catch(err=>console.log(err));
         }
       }
