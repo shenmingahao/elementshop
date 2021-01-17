@@ -164,7 +164,8 @@
 
           <el-table-column fixed="right" align="center" label="操作">
             <template slot-scope="scope">
-
+              <el-button @click="updateAttrValueForm(scope.row.id)" type="text" size="small">修改</el-button>
+              <el-button @click="deleteAttrValueForm(scope.row.id)" type="text" size="small">删除</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -191,6 +192,30 @@
         <div slot="footer" class="dialog-footer" align="center">
           <el-button @click="addAttrValueFormFlag=false">取 消</el-button>
           <el-button type="primary" @click="addAttrValue">确 定</el-button>
+        </div>
+      </el-dialog>
+
+      <!--  修改属性值弹框 -->
+      <el-dialog title="新增属性值信息" :visible.sync="updateAttrValueFormFlag">
+
+        <el-form :model="updateAttrValueData" ref="updateAttrValueForm"   label-width="80px">
+
+          <el-form-item label="英文名称" prop="name">
+            <el-col :span="8" :offset="6">
+              <el-input v-model="updateAttrValueData.name" autocomplete="off" ></el-input>
+            </el-col>
+          </el-form-item>
+
+          <el-form-item label="中文名称" prop="name">
+            <el-col :span="8" :offset="6">
+              <el-input v-model="updateAttrValueData.nameCH" autocomplete="off" ></el-input>
+            </el-col>
+          </el-form-item>
+
+        </el-form>
+        <div slot="footer" class="dialog-footer" align="center">
+          <el-button @click="updateAttrValueFormFlag=false">取 消</el-button>
+          <el-button type="primary" @click="updateAttrValue">确 定</el-button>
         </div>
       </el-dialog>
 
@@ -225,6 +250,13 @@
             addAttrValueFormFlag:false,
             valueData:{
               attrId:""
+            },
+            updateAttrValueFormFlag:false,
+            updateAttrValueData:{
+              id:"",
+              name:"",
+              nameCH:"",
+              isDel:""
             }
           }
       },
@@ -313,6 +345,33 @@
           this.$axios.post("http://localhost:8080/api/attrValue/addAttrValue" , this.$qs.stringify(data)).then(rs=>{
             //关闭弹框
             this.addAttrValueFormFlag=false;
+            //刷新表格
+            athis.attrValue(this.atrId);
+          }).catch(err=>console.log(err));
+        },
+        updateAttrValueForm:function (id) {
+          this.updateAttrValueFormFlag = true;
+          var data = {id:id};
+          this.$axios.post("http://localhost:8080/api/attrValue/huixian" , this.$qs.stringify(data)).then(rs=>{
+            this.updateAttrValueData.id = rs.data.data.id;
+            this.updateAttrValueData.name = rs.data.data.name;
+            this.updateAttrValueData.nameCH = rs.data.data.nameCH;
+            this.updateAttrValueData.isDel = rs.data.data.isDel;
+          }).catch(err=>console.log(err));
+        },
+        updateAttrValue:function () {
+          var athis = this;
+          this.$axios.post("http://localhost:8080/api/attrValue/updateAttrValue" , this.$qs.stringify(this.updateAttrValueData)).then(rs=>{
+            //关闭弹窗
+            this.updateAttrValueFormFlag = false;
+            //刷新表格
+            athis.attrValue(this.atrId);
+          }).catch(err=>console.log(err));
+        },
+        deleteAttrValueForm:function (id) {
+          var data = {id:id};
+          var athis = this;
+          this.$axios.post("http://localhost:8080/api/attrValue/deleteAttrValue" , this.$qs.stringify(data)).then(rs=>{
             //刷新表格
             athis.attrValue(this.atrId);
           }).catch(err=>console.log(err));
