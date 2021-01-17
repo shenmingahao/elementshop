@@ -19,6 +19,7 @@
           <template slot-scope="scope">
             <el-button @click="updateForm(scope.row.id)" type="text" size="small">修改</el-button>
             <el-button @click="deleteAttr(scope.row.id)" type="text" size="small">删除</el-button>
+            <el-button @click="attrValue(scope.row.id)" type="text" size="small">属性值维护</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -146,6 +147,24 @@
         </div>
       </el-dialog>
 
+      <!-- 属性值表格 -->
+      <el-dialog title="属性值信息" :visible.sync="ShowValueTable">
+        <el-table :data="attrValueData" border style="width: 100%">
+
+          <el-table-column fixed align="center" prop="id" label="序号"></el-table-column>
+
+          <el-table-column fixed align="center" prop="name" label="英文名称"></el-table-column>
+
+          <el-table-column fixed align="center" prop="nameCH" label="中文名称"></el-table-column>
+
+          <el-table-column fixed="right" align="center" label="操作">
+            <template slot-scope="scope">
+
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-dialog>
+
     </div>
 </template>
 
@@ -170,77 +189,87 @@
               typeId:"",
               type:"",
               isSkU:""
-            }
+            },
+            attrValueData:[],
+            ShowValueTable:false
           }
       },
       created:function () {
         this.queryAttrData(1);
         this.queryTypeData();
       },
-      methods:{
-        queryAttrData:function (page) {
+      methods: {
+        queryAttrData: function (page) {
           var limit = this.size;
           var data = this.$qs.stringify(this.param);
-          this.$axios.get("http://localhost:8080/api/attribute/queryAttribute?page="+page+"&limit="+page+"&"+data).then(rs=>{
+          this.$axios.get("http://localhost:8080/api/attribute/queryAttribute?page=" + page + "&limit=" + page + "&" + data).then(rs => {
             this.attrData = rs.data.data.data;
             this.count = rs.data.data.count;
-          }).catch(err=>console.log(err));
+          }).catch(err => console.log(err));
         },
-        handleCurrentChange:function (page) {
+        handleCurrentChange: function (page) {
           this.queryAttrData(page);
         },
-        handleSizeChange:function (size) {
+        handleSizeChange: function (size) {
           this.size = size;
           this.queryAttrData(1);
         },
-        queryTypeData:function(){
-          this.$axios.get("http://localhost:8080/api/type/getData").then(rs=>{
-            this.typeData=rs.data.data;
-          }).catch(err=>console.log(err));
+        queryTypeData: function () {
+          this.$axios.get("http://localhost:8080/api/type/getData").then(rs => {
+            this.typeData = rs.data.data;
+          }).catch(err => console.log(err));
         },
-        onLineType:function (row , column) {
-          for (let i = 0; i <this.typeData.length ; i++) {
-            if (row.typeId == this.typeData[i].id){
+        onLineType: function (row, column) {
+          for (let i = 0; i < this.typeData.length; i++) {
+            if (row.typeId == this.typeData[i].id) {
               return this.typeData[i].name;
             }
           }
         },
-        onLineSku:function (row , column) {
-          return row.isSkU==1?"是":row.isSkU==2?"否":"";
+        onLineSku: function (row, column) {
+          return row.isSkU == 1 ? "是" : row.isSkU == 2 ? "否" : "";
         },
-        addAttrForm:function () {
-          this.$axios.post("http://localhost:8080/api/attribute/addAttribute",this.$qs.stringify(this.data)).then(rs=>{
+        addAttrForm: function () {
+          this.$axios.post("http://localhost:8080/api/attribute/addAttribute", this.$qs.stringify(this.data)).then(rs => {
             //关闭弹窗
             this.addFormFlag = false;
             //调用查询方法  刷新表格数据
             this.queryAttrData(1);
-          }).catch(err=>console.log(err));
+          }).catch(err => console.log(err));
         },
-        updateForm:function (id) {
+        updateForm: function (id) {
           this.updateFormFlag = true;
-          var data = {id:id};
-          this.$axios.post("http://localhost:8080/api/attribute/huixian",this.$qs.stringify(data)).then(rs=>{
+          var data = {id: id};
+          this.$axios.post("http://localhost:8080/api/attribute/huixian", this.$qs.stringify(data)).then(rs => {
             this.updateAttr.id = rs.data.data.id;
             this.updateAttr.name = rs.data.data.name;
             this.updateAttr.nameCH = rs.data.data.nameCH;
             this.updateAttr.typeId = rs.data.data.typeId;
             this.updateAttr.type = rs.data.data.type;
             this.updateAttr.isSkU = rs.data.data.isSkU;
-          }).catch(err=>console.log(err));
+          }).catch(err => console.log(err));
         },
-        updateAttrForm:function () {
-          this.$axios.post("http://localhost:8080/api/attribute/updateAttribute",this.$qs.stringify(this.updateAttr)).then(rs=>{
+        updateAttrForm: function () {
+          this.$axios.post("http://localhost:8080/api/attribute/updateAttribute", this.$qs.stringify(this.updateAttr)).then(rs => {
             //关闭弹窗
             this.updateFormFlag = false;
             //调用查询方法  刷新表格数据
             this.queryAttrData(1);
-          }).catch(err=>console.log(err));
+          }).catch(err => console.log(err));
         },
-        deleteAttr:function (id) {
-          var data = {id:id};
-          this.$axios.post("http://localhost:8080/api/attribute/deleteAttribute",this.$qs.stringify(data)).then(rs=>{
+        deleteAttr: function (id) {
+          var data = {id: id};
+          this.$axios.post("http://localhost:8080/api/attribute/deleteAttribute", this.$qs.stringify(data)).then(rs => {
             //调用查询方法  刷新表格数据
             this.queryAttrData(1);
+          }).catch(err => console.log(err));
+        },
+        attrValue:function (attrId) {
+          this.ShowValueTable = true;
+          var data = {attrId:attrId};
+          this.$axios.post("http://localhost:8080/api/attrValue/queryAttrValue" , this.$qs.stringify(data)).then(rs=>{
+
+            this.attrValueData = rs.data.data;
           }).catch(err=>console.log(err));
         }
       }
