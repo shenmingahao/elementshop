@@ -11,7 +11,9 @@
 
         <el-table-column fixed align="center" prop="nameCH" label="中文名称"></el-table-column>
 
-        <el-table-column fixed align="center" prop="typeId" label="分类" :formatter="onLineType"></el-table-column>
+        <el-table-column fixed align="center" prop="typeId" label="分类" :formatter="onLineTypeId"></el-table-column>
+
+        <el-table-column fixed align="center" prop="type" label="类型" :formatter="onLineType"></el-table-column>
 
         <el-table-column fixed align="center" prop="isSkU" label="SKU属性" :formatter="onLineSku"></el-table-column>
 
@@ -19,7 +21,7 @@
           <template slot-scope="scope">
             <el-button @click="updateForm(scope.row.id)" type="text" size="small">修改</el-button>
             <el-button @click="deleteAttr(scope.row.id)" type="text" size="small">删除</el-button>
-            <el-button @click="attrValue(scope.row.id)" type="text" size="small">属性值维护</el-button>
+            <el-button v-if="scope.row.type!=3" @click="attrValue(scope.row)" type="text" size="small">属性值维护</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -54,7 +56,7 @@
             <el-col :span="8" :offset="6">
               <el-select v-model="data.typeId" placeholder="请选择">
                 <el-option
-                  v-for="item in typeData"
+                  v-for="item in types"
                   :key="item.id"
                   :label="item.name"
                   :value="item.id">
@@ -111,7 +113,7 @@
             <el-col :span="8" :offset="6">
               <el-select v-model="updateAttr.typeId" placeholder="请选择">
                 <el-option
-                  v-for="item in typeData"
+                  v-for="item in types"
                   :key="item.id"
                   :label="item.name"
                   :value="item.id">
@@ -148,7 +150,7 @@
       </el-dialog>
 
       <!-- 属性值表格 -->
-      <el-dialog title="属性值信息" :visible.sync="ShowValueTable">
+      <el-dialog :title="ValueTitle" :visible.sync="ShowValueTable">
 
         <el-button type="primary" round @click="addAttrValueFormFlag=true" size="small">新增</el-button>
 
@@ -257,7 +259,10 @@
               name:"",
               nameCH:"",
               isDel:""
-            }
+            },
+            ValueTitle:"",
+            types:[],
+            typeName:""
           }
       },
       created:function () {
@@ -283,14 +288,64 @@
         queryTypeData: function () {
           this.$axios.get("http://localhost:8080/api/type/getData").then(rs => {
             this.typeData = rs.data.data;
+            //先找到子节点的数据
+            this.getChildrenType();
+            //遍历所有的子节点
+            for (let i = 0; i < this.types.length; i++) {
+              // 全局变量   临时存 层级名称
+              this.typeName = "";
+              //处理子节点的name属性
+              this.chandleName(this.types[i]);
+              //给name重新赋值
+              this.types[i].name = this.typeName.split("/").reverse().join("/").substring(0,this.typeName.length-1);
+            }
           }).catch(err => console.log(err));
         },
-        onLineType: function (row, column) {
+        //给我一个节点  得到层级name
+        chandleName:function(node){
+          //临界值
+          if (node.pid != 0){
+            this.typeName += "/"+node.name;
+            //上级节点
+            for (let i = 0; i <this.typeData.length; i++) {
+              if (node.pid == this.typeData[i].id){
+                this.chandleName(this.typeData[i]);
+                break;
+              }
+            }
+          }else {
+            this.typeName += "/"+node.name;
+          }
+        },
+        getChildrenType:function(){
+          //遍历所有的节点数据
+          for (let i = 0; i <this.typeData.length; i++) {
+            let node = this.typeData[i];
+            this.isChildrenNode(node);
+          }
+        },
+        isChildrenNode:function(node){
+          //标识
+          let rs = true;
+          for (let i = 0; i < this.typeData.length; i++) {
+            if (node.id == this.typeData[i].pid){
+              rs = false;
+              break;
+            }
+          }
+          if (rs == true){
+            this.types.push(node);
+          }
+        },
+        onLineTypeId: function (row, column) {
           for (let i = 0; i < this.typeData.length; i++) {
             if (row.typeId == this.typeData[i].id) {
               return this.typeData[i].name;
             }
           }
+        },
+        onLineType: function (row, column) {
+          return row.type==0?"下拉框":row.type==1?"单选框":row.type==2?"复选框":row.type==3?"输入框":"";
         },
         onLineSku: function (row, column) {
           return row.isSkU == 1 ? "是" : row.isSkU == 2 ? "否" : "";
@@ -330,10 +385,11 @@
             this.queryAttrData(1);
           }).catch(err => console.log(err));
         },
-        attrValue:function (attrId) {
+        attrValue:function (row) {
           this.ShowValueTable = true;
-          this.atrId = attrId;
-          var data = {attrId:attrId};
+          this.ValueTitle = row.nameCH+"的选项信息";
+          this.atrId = row.id;
+          var data = {attrId:row.id};
           this.$axios.post("http://localhost:8080/api/attrValue/queryAttrValue" , this.$qs.stringify(data)).then(rs=>{
             this.attrValueData = rs.data.data;
           }).catch(err=>console.log(err));
@@ -341,12 +397,11 @@
         addAttrValue:function () {
           this.valueData.attrId = this.atrId;
           var data = this.valueData;
-          var athis = this;
           this.$axios.post("http://localhost:8080/api/attrValue/addAttrValue" , this.$qs.stringify(data)).then(rs=>{
             //关闭弹框
             this.addAttrValueFormFlag=false;
             //刷新表格
-            athis.attrValue(this.atrId);
+            this.attrValue(this.atrId);
           }).catch(err=>console.log(err));
         },
         updateAttrValueForm:function (id) {
@@ -360,20 +415,18 @@
           }).catch(err=>console.log(err));
         },
         updateAttrValue:function () {
-          var athis = this;
           this.$axios.post("http://localhost:8080/api/attrValue/updateAttrValue" , this.$qs.stringify(this.updateAttrValueData)).then(rs=>{
             //关闭弹窗
             this.updateAttrValueFormFlag = false;
             //刷新表格
-            athis.attrValue(this.atrId);
+            this.attrValue(this.atrId);
           }).catch(err=>console.log(err));
         },
         deleteAttrValueForm:function (id) {
           var data = {id:id};
-          var athis = this;
           this.$axios.post("http://localhost:8080/api/attrValue/deleteAttrValue" , this.$qs.stringify(data)).then(rs=>{
             //刷新表格
-            athis.attrValue(this.atrId);
+            this.attrValue(this.atrId);
           }).catch(err=>console.log(err));
         }
       }
