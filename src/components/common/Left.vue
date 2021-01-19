@@ -67,6 +67,10 @@
               title: '商品管理',
               subs: [
                 {
+                  index:'goods',
+                  title:'添加商品'
+                },
+                {
                   index:'type',
                   title:'分类管理'
                 },

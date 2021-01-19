@@ -33,6 +33,11 @@ export default new Router({
           path: '/attr',
           component: () => import(/* webpackChunkName: "dashboard" */ '../components/shop/Attr.vue'),
           meta: { title: '属性管理' }
+        },
+        {
+          path: '/goods',
+          component: () => import(/* webpackChunkName: "dashboard" */ '../components/shop/Goods.vue'),
+          meta: { title: '添加商品' }
         }
       ]
     }

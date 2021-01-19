@@ -388,14 +388,14 @@
         attrValue:function (row) {
           this.ShowValueTable = true;
           this.ValueTitle = row.nameCH+"的选项信息";
-          this.atrId = row.id;
-          var data = {attrId:row.id};
+          this.atrId = row;
+          var data = {attrId:this.atrId.id};
           this.$axios.post("http://localhost:8080/api/attrValue/queryAttrValue" , this.$qs.stringify(data)).then(rs=>{
             this.attrValueData = rs.data.data;
           }).catch(err=>console.log(err));
         },
         addAttrValue:function () {
-          this.valueData.attrId = this.atrId;
+          this.valueData.attrId = this.atrId.id;
           var data = this.valueData;
           this.$axios.post("http://localhost:8080/api/attrValue/addAttrValue" , this.$qs.stringify(data)).then(rs=>{
             //关闭弹框
