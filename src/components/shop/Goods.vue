@@ -97,27 +97,51 @@
                 <el-input v-if="a.type==3"></el-input>
 
                 <el-select v-if="a.type==0"  placeholder="请选择">
-                  <el-option v-for="b in a.name" :key="b.id"  :label="b.nameCH" value="b.id"></el-option>
+                  <el-option v-for="b in a.values" :key="b.id"  :label="b.nameCH" value="b.id"></el-option>
                 </el-select>
 
                 <el-radio-group v-if="a.type==1">
-                  <el-radio v-for="b in a.name" :key="b.id" :label="b.nameCH"></el-radio>
+                  <el-radio v-for="b in a.values" :key="b.id" :label="b.nameCH"></el-radio>
                 </el-radio-group>
 
                 <el-checkbox-group v-if="a.type==2" v-model="a.ckValues" @change="skuChange">
-                  <el-checkbox v-for="b in a.name" :key="b.id" :label="b.nameCH" name="type"></el-checkbox>
+                  <el-checkbox v-for="b in a.values" :key="b.id" :label="b.nameCH" name="type"></el-checkbox>
                 </el-checkbox-group>
 
             </el-form-item>
 
           </el-form-item>
 
-          <table v-if="tableShow">
-            <tr>
-              <td>价格</td>
-              <td>库存</td>
-            </tr>
-          </table>
+          <el-table
+            v-if="tableShow"
+            :data="tableData"
+            style="width: 100%">
+
+            <el-table-column v-for="c in cols" :key="c.id" :label="c.nameCH" :prop="c.name">
+
+            </el-table-column>
+
+            <el-table-column
+              label="价格"
+              width="180">
+
+              <template slot-scope="scope">
+                <el-input/>
+              </template>
+
+            </el-table-column>
+
+            <el-table-column
+              label="库存"
+              width="180">
+
+              <template slot-scope="scope">
+                <el-input/>
+              </template>
+
+            </el-table-column>
+
+          </el-table>
 
           <el-form-item v-if="attData.length>0" label="商品参数" prop="name">
 
@@ -127,15 +151,15 @@
               <el-input v-if="a.type==3"></el-input>
 
               <el-select v-if="a.type==0"  placeholder="请选择">
-                <el-option v-for="b in a.name" :key="b.id"  :label="b.nameCH" value="b.id"></el-option>
+                <el-option v-for="b in a.values" :key="b.id"  :label="b.nameCH" value="b.id"></el-option>
               </el-select>
 
               <el-radio-group v-if="a.type==1">
-                <el-radio v-for="b in a.name" :key="b.id" :label="b.nameCH"></el-radio>
+                <el-radio v-for="b in a.values" :key="b.id" :label="b.nameCH"></el-radio>
               </el-radio-group>
 
               <el-checkbox-group v-if="a.type==2">
-                <el-checkbox v-for="b in a.name" :key="b.id" :label="b.nameCH" name="type"></el-checkbox>
+                <el-checkbox v-for="b in a.values" :key="b.id" :label="b.nameCH" name="type"></el-checkbox>
               </el-checkbox-group>
 
             </el-form-item>
@@ -155,7 +179,7 @@
       data(){
           return{
             active:0,
-            ck:[],
+            tables:"",
             goods:{
               name:"",
               title:"",
@@ -174,59 +198,63 @@
             typeData:[],
             types:[],
             typeName:"",
-            tableShow:false
+            tableShow:false,
+            cols:[],//表动态列头
+            tableData:[]
           }
       },
       created:function(){
         this.queryBrand();
       },
       methods:{
-        discarts:function() {
-          //笛卡尔积
-          var twodDscartes = function (a, b) {
-            var ret = [];
-            for (var i = 0; i < a.length; i++) {
-              for (var j = 0; j < b.length; j++) {
-                ret.push(ft(a[i], b[j]));
-              }
-            }
-            return ret;
-          }
-          var ft = function (a, b) {
-            if (!(a instanceof Array))
-              a = [a];
-            var ret = a.slice(0);
-            ret.push(b);
-            return ret;
-          }
-          //多个一起做笛卡尔积
-          return (function (data) {
-            var len = data.length;
-            if (len == 0)
-              return [];
-            else if (len == 1)
-              return data[0];
-            else {
-              var r = data[0];
-              for (var i = 1; i < len; i++) {
-                r = twodDscartes(r, data[i]);
-              }
-              return r;
-            }
-          })(arguments.length > 1 ? arguments : arguments[0]);
+          //笛卡尔积计算
+        calcDescartes:function(array) {
+          if (array.length < 2) return array[0] || [];
+          return [].reduce.call(array, function (col, set) {
+            var res = [];
+            col.forEach(function (c) {
+              set.forEach(function (s) {
+                var t = [].concat(Array.isArray(c) ? c : [c]);
+                t.push(s);
+                res.push(t);
+              })
+            });
+            return res;
+          });
         },
         skuChange:function(){
-          console.log(this.SKUData);
+          //清空动态列头
+          this.cols=[];
+          this.tableData=[];
+          //声明笛卡尔积的参数
+          let dikaParams=[];
           //判断是否要生成笛卡尔积
           let flag=true;
+          console.log(this.SKUData)
           for (let i = 0; i < this.SKUData.length; i++) {
+            //添加动态列头名称
+            this.cols.push({"id":this.SKUData[i].id,"nameCH":this.SKUData[i].nameCH , "name":this.SKUData[i].name});
+            //添加笛卡尔积参数
+            dikaParams.push(this.SKUData[i].ckValues);
             if (this.SKUData[i].ckValues.length == 0){
               flag = false;
               break;
             }
           }
           if (flag == true){
-            alert("生成笛卡尔积");
+            let res = this.calcDescartes(dikaParams);
+            //遍历笛卡尔积的结果集
+            for (let i = 0; i < res.length; i++) {
+              //笛卡尔积 转为json的对象
+              let jsonData = {};
+              for (let j = 0; j < res[i].length; j++) {
+                //获取数据的key
+                let key = this.cols[j].name;
+                jsonData[key] = res[i][j];
+              }
+              this.tableData.push(jsonData);
+              console.log(JSON.stringify(jsonData))
+            }
           }
           this.tableShow=flag;
         },
@@ -259,9 +287,11 @@
           return isJPG && isLt2M;
         },
         getAttrData:function (typeId) {
+          //清空数据
           this.attData=[];
           this.SKUData=[];
           var data = {typeId:typeId};
+          //根据 typeId 查数据
           this.$axios.post("http://localhost:8080/api/attribute/queryAttrByTypeId",this.$qs.stringify(data)).then(rs=>{
             //定一个变量  把所有的属性数据都赋给它
             let attrDatas = rs.data.data;
@@ -275,7 +305,7 @@
                     //发起请求 查询此属性对应的选项值
                     var data = {attrId:attrDatas[i].id};
                     this.$axios.post("http://localhost:8080/api/attrValue/queryAttrValue",this.$qs.stringify(data)).then(rs=>{
-                      attrDatas[i].name = rs.data.data;
+                      attrDatas[i].values = rs.data.data;
                       this.attData.push(attrDatas[i]);
                     }).catch(err=>console.log(err));
                   }else {
@@ -286,7 +316,7 @@
                     //发起请求 查询此属性对应的选项值
                     var data = {attrId:attrDatas[i].id};
                     this.$axios.post("http://localhost:8080/api/attrValue/queryAttrValue",this.$qs.stringify(data)).then(rs=>{
-                      attrDatas[i].name = rs.data.data;
+                      attrDatas[i].values = rs.data.data;
                       attrDatas[i].ckValues = [];
                       this.SKUData.push(attrDatas[i]);
                     }).catch(err=>console.log(err));
