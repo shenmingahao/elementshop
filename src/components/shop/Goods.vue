@@ -126,7 +126,7 @@
               width="180">
 
               <template slot-scope="scope">
-                <el-input/>
+                <el-input v-model="scope.row.price"/>
               </template>
 
             </el-table-column>
@@ -136,7 +136,7 @@
               width="180">
 
               <template slot-scope="scope">
-                <el-input/>
+                <el-input v-model="scope.row.storcks"/>
               </template>
 
             </el-table-column>
@@ -148,17 +148,17 @@
             <el-form-item v-for="a in  attData" :key="a.id" :label="a.nameCH">
 
               <!--  0 下拉框     1 单选框      2  复选框   3  输入框  -->
-              <el-input v-if="a.type==3"></el-input>
+              <el-input v-if="a.type==3" v-model="a.ckValues"></el-input>
 
-              <el-select v-if="a.type==0"  placeholder="请选择">
+              <el-select v-if="a.type==0" v-model="a.ckValues" placeholder="请选择">
                 <el-option v-for="b in a.values" :key="b.id"  :label="b.nameCH" value="b.id"></el-option>
               </el-select>
 
-              <el-radio-group v-if="a.type==1">
+              <el-radio-group v-if="a.type==1" v-model="a.ckValues">;
                 <el-radio v-for="b in a.values" :key="b.id" :label="b.nameCH"></el-radio>
               </el-radio-group>
 
-              <el-checkbox-group v-if="a.type==2">
+              <el-checkbox-group v-if="a.type==2" v-model="a.ckValues">
                 <el-checkbox v-for="b in a.values" :key="b.id" :label="b.nameCH" name="type"></el-checkbox>
               </el-checkbox-group>
 
@@ -167,6 +167,7 @@
           </el-form-item>
 
           <el-button type="primary" @click="active--">上一步</el-button>
+          <el-button type="primary" @click="addData">添加</el-button>
         </el-form>
       </div>
 
@@ -183,7 +184,7 @@
             goods:{
               name:"",
               title:"",
-              bandId:"",
+              brandId:"",
               productdecs:"",
               price:0,
               stocks:0,
@@ -200,13 +201,38 @@
             typeName:"",
             tableShow:false,
             cols:[],//表动态列头
-            tableData:[]
+            tableData:[],
+            price:"",
+            storcks:""
           }
       },
       created:function(){
         this.queryBrand();
       },
       methods:{
+          addData:function(){
+            //商品类型的id
+            this.goods.typeId = this.goods2.typeId;
+            console.log(this.goods);
+            //非sku数据
+            console.log(this.attData);
+            //sku数据
+            console.log(this.tableData);
+            //声明后台接参的attr
+            let attrs = [];
+            for (let i = 0; i < this.attData.length; i++) {
+              let attData = {};
+              attData[this.attData[i].name] = this.attData[i].ckValues;
+              attrs.push(attData);
+            }
+            //后台接参是string  将数组转为json字符串
+            this.goods.attr = JSON.stringify(attrs);
+            this.goods.sku = JSON.stringify(this.tableData);
+            //发送请求  把数据保存到数据库中
+            this.$axios.post("http://localhost:8080/api/product/addProduct",this.$qs.stringify(this.goods)).then(rs=>{
+              this.$message.success("添加成功");
+            }).catch(err=>console.log(err));
+          },
           //笛卡尔积计算
         calcDescartes:function(array) {
           if (array.length < 2) return array[0] || [];
@@ -253,13 +279,16 @@
                 jsonData[key] = res[i][j];
               }
               this.tableData.push(jsonData);
-              console.log(JSON.stringify(jsonData))
+              console.log(this.tableData);
             }
           }
           this.tableShow=flag;
         },
         next:function () {
-          this.formaterTypeData();
+            debugger
+          if (this.types.length == 0){
+            this.formaterTypeData();
+          }
           if (this.active++ > 1) this.active=0;
         },
         queryBrand:function () {
@@ -287,6 +316,7 @@
           return isJPG && isLt2M;
         },
         getAttrData:function (typeId) {
+          this.tableShow = false;
           //清空数据
           this.attData=[];
           this.SKUData=[];
@@ -302,6 +332,7 @@
                 //判断是否为sku属性
                 if (attrDatas[i].isSkU == 2){
                   if (attrDatas[i].type != 3){
+                    attrDatas[i].ckValues = [];
                     //发起请求 查询此属性对应的选项值
                     var data = {attrId:attrDatas[i].id};
                     this.$axios.post("http://localhost:8080/api/attrValue/queryAttrValue",this.$qs.stringify(data)).then(rs=>{
@@ -331,7 +362,6 @@
               this.SKUData=[];
             }
           }).catch(err=>console.log(err));
-          console.log(this.attData);
         },
         formaterTypeData:function () {
           this.$axios.get("http://localhost:8080/api/type/getData").then(rs => {
