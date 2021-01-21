@@ -2,6 +2,7 @@
     <div align="center">
       <h1>商品列表</h1>
 
+      <router-link to="/goods"><el-button type="primary" round size="small">新增</el-button></router-link>
       <!-- 属性值表格 -->
       <el-table :data="productData" border style="width: 100%">
 
@@ -29,7 +30,7 @@
 
         <el-table-column fixed="right" align="center" label="操作">
           <template slot-scope="scope">
-
+            <el-button @click="updateForm(scope.row.id)" type="text" size="small">修改</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -42,6 +43,75 @@
         layout="total, sizes, prev, pager, next, jumper"
         :total="count">
       </el-pagination>
+
+
+      <!-- 修改的模板 -->
+      <el-dialog title="修改商品信息" :visible.sync="updateFormFlag">
+
+        <el-form :model="updateProductData" ref="productInfoForm" label-width="120px" style="width: 600px" size="small">
+          <el-form-item label="商品名称" prop="name">
+            <el-input v-model="updateProductData.name"></el-input>
+          </el-form-item>
+
+          <el-form-item label="标题" prop="title">
+            <el-input v-model="updateProductData.title"></el-input>
+          </el-form-item>
+
+          <el-form-item label="品牌" prop="brandId">
+            <el-col :span="8" :offset="6">
+              <el-select v-model="updateProductData.brandId" placeholder="请选择">
+                <el-option
+                  v-for="item in brand"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id">
+                </el-option>
+              </el-select>
+            </el-col>
+          </el-form-item>
+
+          <el-form-item label="简介" prop="productdecs">
+            <el-input type="textarea" v-model="updateProductData.productdecs"></el-input>
+          </el-form-item>
+
+          <el-form-item label="价格"  prop="price">
+            <el-input-number v-model="updateProductData.price" :precision="2" :step="0.1"></el-input-number>
+          </el-form-item>
+
+          <el-form-item label="库存"  prop="stocks">
+            <template>
+              <el-input-number v-model="updateProductData.stocks" :step="10"></el-input-number>
+            </template>
+          </el-form-item>
+
+          <el-form-item label="排序"  prop="sortNum">
+            <template>
+              <el-input-number v-model="updateProductData.sortNum" :step="1"></el-input-number>
+            </template>
+          </el-form-item>
+
+          <!-- 图片插件  -->
+          <el-form-item label="主图" prop="imgPath">
+            <div><img :src="updateProductData.imgPath" width="80px"/></div>
+            <el-upload
+              class="avatar-uploader"
+              action="http://localhost:8080/api/brand/uploadFile"
+              :show-file-list="false"
+              name="img"
+              :on-success="handleAvatarSuccess"
+              :before-upload="beforeAvatarUpload">
+              <img v-if="imageUrl" :src="imageUrl" class="avatar">
+              <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+            </el-upload>
+          </el-form-item>
+
+          <el-form-item style="text-align: center">
+            <el-button @click="updateFormFlag = false">取 消</el-button>
+            <el-button type="primary" @click="updateProduct">确 定</el-button>
+          </el-form-item>
+        </el-form>
+
+      </el-dialog>
 
 
 
@@ -59,19 +129,41 @@
             sizes:[5,8,10,20],
             size:5,
             param:{},
+            /*  修改弹框模块 */
+            updateFormFlag:false,
+            updateProductData:{
+              id:"",
+              name:"",
+              title:"",
+              brandId:"",
+              productdecs:"",
+              price:"",
+              stocks:"",
+              sortNum:"",
+              imgPath:""
+            },
+            brand:[],
+            imageUrl:""
           }
       },
       created:function () {
         this.queryProductData(1);
+        //查询品牌数据
+        this.queryBrandData();
       },
       methods:{
+        queryBrandData:function(){
+          //发送请求  获取到品牌数据
+          this.$axios.post("http://localhost:8080/api/brand/queryBrandData").then(rs=>{
+            this.brand = rs.data.data;
+          }).catch(err=>console.log(err));
+        },
         queryProductData:function(page){
           let limit = this.size;
           this.param.page = page;
           this.param.limit = limit;
           let data = this.param;
           this.$axios.post("http://localhost:8080/api/product/queryProduct" , this.$qs.stringify(data)).then(rs=>{
-            console.log(rs);
             this.productData = rs.data.data.data;
             this.count = rs.data.data.count;
           }).catch(err=>console.log(err));
@@ -82,6 +174,51 @@
         handleSizeChange:function (size) {
           this.size = size;
           this.queryProductData(1);
+        },
+        updateForm:function (id) {
+          this.updateFormFlag = true;
+          let data = {id:id};
+          //发送请求  回显
+          this.$axios.post("http://localhost:8080/api/product/huixian" , this.$qs.stringify(data)).then(rs=>{
+            console.log(rs);
+            this.updateProductData.id = rs.data.data.id;
+            this.updateProductData.name = rs.data.data.name;
+            this.updateProductData.title = rs.data.data.title;
+            this.updateProductData.brandId = rs.data.data.brandId;
+            this.updateProductData.productdecs = rs.data.data.productdecs;
+            this.updateProductData.price = rs.data.data.price;
+            this.updateProductData.stocks = rs.data.data.stocks;
+            this.updateProductData.sortNum = rs.data.data.sortNum;
+            this.updateProductData.imgPath = rs.data.data.imgPath;
+          }).catch(err=>console.log(err));
+        },
+        updateProduct:function(){
+          this.updateFormFlag = false;
+          let data = this.updateProductData;
+          this.$axios.post("http://localhost:8080/api/product/updateProduct" , this.$qs.stringify(data)).then(rs=>{
+            //关闭弹框
+            this.updateFormFlag = false;
+            //调用查询方法  刷新表格数据
+            this.queryProductData(1);
+          }).catch(err=>console.log(err));
+        },
+        handleAvatarSuccess:function (res, file) {
+          this.updateProductData.imgPath=res.filePath;
+          //显示赋值
+          this.imageUrl=res.filePath;
+        },
+        beforeAvatarUpload(file) {
+          //限制类型    name  来限制
+          const isJPG = file.type === 'image/jpeg';
+          const isLt2M = file.size / 1024 / 1024 < 4;
+
+          if (!isJPG) {
+            this.$message.error('上传头像图片只能是 JPG 格式!');
+          }
+          if (!isLt2M) {
+            this.$message.error('上传头像图片大小不能超过 2MB!');
+          }
+          return isJPG && isLt2M;
         }
       }
 
@@ -89,5 +226,27 @@
 </script>
 
 <style scoped>
-
+  .avatar-uploader .el-upload {
+    border: 1px dashed #d9d9d9;
+    border-radius: 6px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .avatar-uploader .el-upload:hover {
+    border-color: #409EFF;
+  }
+  .avatar-uploader-icon {
+    font-size: 28px;
+    color: #8c939d;
+    width: 178px;
+    height: 178px;
+    line-height: 178px;
+    text-align: center;
+  }
+  .avatar {
+    width: 178px;
+    height: 178px;
+    display: block;
+  }
 </style>
