@@ -1,8 +1,22 @@
 <template>
     <div align="center">
+      <h1>条件筛选</h1>
+      <el-form :model="param"  label-width="90px">
+
+        <el-form-item label="商品名称" prop="name">
+          <el-col :span="4">
+            <el-input v-model="param.name" autocomplete="off" ></el-input>
+            <el-button type="primary" @click="queryProductData(1)">搜索</el-button>
+          </el-col>
+        </el-form-item>
+
+      </el-form>
+
+
       <h1>商品列表</h1>
 
       <router-link to="/goods"><el-button type="primary" round size="small">新增</el-button></router-link>
+
       <!-- 属性值表格 -->
       <el-table :data="productData" border style="width: 100%">
 
@@ -12,7 +26,9 @@
 
         <el-table-column fixed align="center" prop="title" label="标题"></el-table-column>
 
-        <el-table-column fixed align="center" prop="brandId" label="品牌"></el-table-column>
+        <el-table-column fixed align="center" prop="brandId" label="品牌" :formatter="oneLineBrand"></el-table-column>
+
+        <el-table-column fixed align="center" prop="typeId" label="类型" :formatter="oneLineType"></el-table-column>
 
         <el-table-column fixed align="center" prop="productdecs" label="简介"></el-table-column>
 
@@ -28,9 +44,11 @@
           </template>
         </el-table-column>
 
-        <el-table-column fixed="right" align="center" label="操作">
+        <el-table-column fixed="right" align="center" label="操作" width="180px">
           <template slot-scope="scope">
             <el-button @click="updateForm(scope.row.id)" type="text" size="small">修改</el-button>
+            <el-button @click="deleteProduct(scope.row.id)" type="text" size="small">删除</el-button>
+            <el-button @click="ddd(scope.row.id)" type="text" size="small">属性值维护</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -136,13 +154,18 @@
               name:"",
               title:"",
               brandId:"",
+              typeId:"",
               productdecs:"",
               price:"",
               stocks:"",
               sortNum:"",
               imgPath:""
             },
+            //品牌的数据
             brand:[],
+            //类型的数据
+            typeData:[],
+            //用于图片回显
             imageUrl:""
           }
       },
@@ -150,8 +173,16 @@
         this.queryProductData(1);
         //查询品牌数据
         this.queryBrandData();
+        //查询类型数据
+        this.queryTypeData();
       },
       methods:{
+        queryTypeData:function(){
+          //发送请求  获取到类型数据
+          this.$axios.get("http://localhost:8080/api/type/getData").then(rs=>{
+            this.typeData = rs.data.data;
+          }).catch(err=>console.log(err));
+        },
         queryBrandData:function(){
           //发送请求  获取到品牌数据
           this.$axios.post("http://localhost:8080/api/brand/queryBrandData").then(rs=>{
@@ -175,6 +206,20 @@
           this.size = size;
           this.queryProductData(1);
         },
+        oneLineBrand:function(row){
+          for (let i = 0; i < this.brand.length; i++) {
+            if (this.brand[i].id == row.brandId){
+              return this.brand[i].name;
+            }
+          }
+        },
+        oneLineType:function(row){
+          for (let i = 0; i < this.typeData.length; i++) {
+            if (this.typeData[i].id == row.typeId){
+              return this.typeData[i].name;
+            }
+          }
+        },
         updateForm:function (id) {
           this.updateFormFlag = true;
           let data = {id:id};
@@ -185,6 +230,7 @@
             this.updateProductData.name = rs.data.data.name;
             this.updateProductData.title = rs.data.data.title;
             this.updateProductData.brandId = rs.data.data.brandId;
+            this.updateProductData.typeId = rs.data.data.typeId;
             this.updateProductData.productdecs = rs.data.data.productdecs;
             this.updateProductData.price = rs.data.data.price;
             this.updateProductData.stocks = rs.data.data.stocks;
@@ -219,6 +265,14 @@
             this.$message.error('上传头像图片大小不能超过 2MB!');
           }
           return isJPG && isLt2M;
+        },
+        deleteProduct:function (id) {
+          let data = {id:id};
+          //发送请求  删除数据
+          this.$axios.post("http://localhost:8080/api/product/deleteProduct" , this.$qs.stringify(data)).then(rs=>{
+            //刷新表格
+            this.queryProductData(1);
+          }).catch(err=>console.log(err));
         }
       }
 
