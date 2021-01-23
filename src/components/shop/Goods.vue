@@ -4,7 +4,6 @@
       <el-steps :active="active" align-center finish-status="success">
         <el-step title="填写商品信息" ></el-step>
         <el-step title="填写商品属性" ></el-step>
-        <el-step title="商品图片"></el-step>
       </el-steps>
 
       <br>
@@ -24,7 +23,7 @@
             <el-col :span="8" :offset="6">
               <el-select v-model="goods.brandId" placeholder="请选择">
                 <el-option
-                  v-for="item in brand"
+                  v-for="item in brandDatas"
                   :key="item.id"
                   :label="item.name"
                   :value="item.id">
@@ -60,8 +59,7 @@
               action="http://localhost:8080/api/brand/uploadFile"
               :show-file-list="false"
               name="img"
-              :on-success="handleAvatarSuccess"
-              :before-upload="beforeAvatarUpload">
+              :on-success="handleAvatarSuccess">
               <img v-if="imageUrl" :src="imageUrl" class="avatar">
               <i v-else class="el-icon-plus avatar-uploader-icon"></i>
             </el-upload>
@@ -75,12 +73,14 @@
 
 
       <div v-if="active==1">
-        <el-form :model="goods2" label-width="120px" style="width: 600px" class="demo-ruleForm">
+        <el-form :model="goods" label-width="120px" style="width: 600px" class="demo-ruleForm">
+
+          <!-- SKU 部分 -->
           <el-form-item label="分类" prop="typeId">
             <el-col :span="18">
-              <el-select v-model="goods2.typeId" placeholder="请选择" @change="getAttrData">
+              <el-select v-model="goods.typeId" placeholder="请选择" @change="showAttrDataAndSkuData">
                 <el-option
-                  v-for="item in types"
+                  v-for="item in typeData"
                   :key="item.id"
                   :label="item.name"
                   :value="item.id">
@@ -93,25 +93,15 @@
 
             <el-form-item v-for="a in  SKUData" :key="a.id" :label="a.nameCH">
 
-              <!--  0 下拉框     1 单选框      2  复选框   3  输入框  -->
-                <el-input v-if="a.type==3"></el-input>
-
-                <el-select v-if="a.type==0"  placeholder="请选择">
-                  <el-option v-for="b in a.values" :key="b.id"  :label="b.nameCH" value="b.id"></el-option>
-                </el-select>
-
-                <el-radio-group v-if="a.type==1">
-                  <el-radio v-for="b in a.values" :key="b.id" :label="b.nameCH"></el-radio>
-                </el-radio-group>
-
-                <el-checkbox-group v-if="a.type==2" v-model="a.ckValues" @change="skuChange">
-                  <el-checkbox v-for="b in a.values" :key="b.id" :label="b.nameCH" name="type"></el-checkbox>
-                </el-checkbox-group>
+              <el-checkbox-group v-if="a.type==2" v-model="a.ckValues" @change="skuChange">
+                <el-checkbox v-for="b in a.values" :key="b.id" :label="b.nameCH" name="type"></el-checkbox>
+              </el-checkbox-group>
 
             </el-form-item>
 
           </el-form-item>
 
+          <!--  表格部分 -->
           <el-table
             v-if="tableShow"
             :data="tableData"
@@ -143,9 +133,11 @@
 
           </el-table>
 
-          <el-form-item v-if="attData.length>0" label="商品参数" prop="name">
 
-            <el-form-item v-for="a in  attData" :key="a.id" :label="a.nameCH">
+          <!-- SPU 部分 -->
+          <el-form-item v-if="attrData.length>0" label="商品参数" prop="name">
+
+            <el-form-item v-for="a in  attrData" :key="a.id" :label="a.nameCH">
 
               <!--  0 下拉框     1 单选框      2  复选框   3  输入框  -->
               <el-input v-if="a.type==3" v-model="a.ckValues"></el-input>
@@ -179,81 +171,114 @@
         name: "Goods",
       data(){
           return{
-            active:0,
+            /*  步骤一的相关数据  */
+            active:0,//步骤条
             tables:"",
             goods:{
               name:"",
               title:"",
               brandId:"",
+              typeId:"",
               productdecs:"",
               price:0,
               stocks:0,
               sortNum:0,
               imgPath:""
             },
-            goods2:{},
+            //用于图片赋值回显到框里
             imageUrl:"",
-            brand:[],
-            attData:[],   //非sku的属性数据
+
+
+            /*  步骤二的相关数据  */
+            brandDatas:[],//品牌数据
+            attrData:[],   //非sku的属性数据
             SKUData:[], //sku属性数据
-            typeData:[],
-            types:[],
-            typeName:"",
+            typeData:[],//分类数据
             tableShow:false,
             cols:[],//表动态列头
-            tableData:[],
-            price:"",
-            storcks:""
+            tableData:[]//表格数据
           }
       },
-      created:function(){
-        this.queryBrand();
+      created: async function(){
+        //查询品牌数据
+        await this.queryBrandData();
       },
-      methods:{
-          addData:function(){
-            //商品类型的id
-            this.goods.typeId = this.goods2.typeId;
-            console.log(this.goods);
-            //非sku数据
-            console.log(this.attData);
-            //sku数据
-            console.log(this.tableData);
-            //声明后台接参的attr
-            let attrs = [];
-            for (let i = 0; i < this.attData.length; i++) {
-              let attData = {};
-              attData[this.attData[i].name] = this.attData[i].ckValues;
-              attrs.push(attData);
-            }
-            //后台接参是string  将数组转为json字符串
-            this.goods.attr = JSON.stringify(attrs);
-            this.goods.sku = JSON.stringify(this.tableData);
-            //发送请求  把数据保存到数据库中
-            this.$axios.post("http://localhost:8080/api/product/addProduct",this.$qs.stringify(this.goods)).then(rs=>{
-              this.$message.success("添加成功");
-            }).catch(err=>console.log(err));
-          },
-          //笛卡尔积计算
-        calcDescartes:function(array) {
-          if (array.length < 2) return array[0] || [];
-          return [].reduce.call(array, function (col, set) {
-            var res = [];
-            col.forEach(function (c) {
-              set.forEach(function (s) {
-                var t = [].concat(Array.isArray(c) ? c : [c]);
-                t.push(s);
-                res.push(t);
-              })
-            });
-            return res;
-          });
+      methods: {
+        queryBrandData: async function () {
+          let rs = await this.$axios.post("http://localhost:8080/api/brand/queryBrandData");
+          this.brandDatas = rs.data.data;
         },
-        skuChange:function(){
-          //清空动态列头
-          this.cols=[];
-          this.tableData=[];
-          //声明笛卡尔积的参数
-          let dikaParams=[];
+        handleAvatarSuccess:function (res, file) {
+          this.goods.imgPath=res.filePath;
+          //显示赋值
+          this.imageUrl=res.filePath;
+        },
+        //   步骤条  下一步
+        next: async function () {
+          if (this.active++ > 1) this.active = 0;
+
+          if (this.typeData.length == 0){
+            //查询分类数据
+            await this.queryTypeData();
+          }
+        },
+        queryTypeData: async function () {
+          let rs = await this.$axios.get("http://localhost:8080/api/type/getData");
+          this.getChildrenNode(rs.data.data);
+        },
+        //给子节点赋值
+        getChildrenNode:function (datas) {
+          //判断当前节点是否为字节点
+          for (let i = 0; i < datas.length; i++) {
+            //得到一个分类数据
+            let node = datas[i];
+            //默认当前节点是子节点
+            let nodeFlag = true;
+            //遍历所有的分类数据
+            for (let j = 0; j < datas.length; j++) {
+              //判断当前节点是否为子节点    在所有的数据中  是否有pid指向当前节点的id的
+              //  有的话就返回 false
+              if (node.id == datas[j].pid){
+                nodeFlag = false;
+                break;
+              }
+            }
+            //判断是否为子节点
+            if (nodeFlag == true){
+              this.typeData.push(node);
+            }
+          }
+        },
+        showAttrDataAndSkuData:function () {
+          //获取此分类下的sku数据和attr 数据
+          let data = {typeId:this.goods.typeId};
+          this.$axios.post("http://localhost:8080/api/attribute/queryAttrDataByTypeId",this.$qs.stringify(data)).then(rs=>{
+            //处理sku的数据
+            //得到所有的sku的数据
+            this.SKUData = rs.data.data.skuDatas;
+            //商品规格 设置初始化值 添加一个属性 ckValues  设置初始值[]
+            for (let i = 0; i < this.SKUData.length; i++) {
+              this.SKUData[i].ckValues = [];
+            }
+            //处理attr数据
+            this.attrData = rs.data.data.attrDatas;
+            //商品规格  复选框 设置初始化值 添加一个属性 ckValues  设置初始值[]
+            for (let i = 0; i < this.attrData.length; i++) {
+              if (this.attrData[i].type == 2){
+                this.attrData[i].ckValues = [];
+              }
+            }
+          }).catch(err=>console.log(err));
+        },
+        skuChange:function () {
+          //强制刷新组件
+          this.$forceUpdate();
+          //笛卡尔积的参数
+          let dikaParams = [];
+          //清空表格数据
+          this.tableData = [];
+          //清空动态表头的数据
+          this.cols = [];
           //判断是否要生成笛卡尔积
           let flag=true;
           console.log(this.SKUData)
@@ -284,135 +309,41 @@
           }
           this.tableShow=flag;
         },
-        next:function () {
-            debugger
-          if (this.types.length == 0){
-            this.formaterTypeData();
-          }
-          if (this.active++ > 1) this.active=0;
+        //笛卡尔积计算
+        calcDescartes:function(array) {
+          if (array.length < 2) return array[0] || [];
+          return [].reduce.call(array, function (col, set) {
+            var res = [];
+            col.forEach(function (c) {
+              set.forEach(function (s) {
+                var t = [].concat(Array.isArray(c) ? c : [c]);
+                t.push(s);
+                res.push(t);
+              })
+            });
+            return res;
+          });
         },
-        queryBrand:function () {
-          this.$axios.post("http://localhost:8080/api/brand/queryBrandData").then(rs=>{
-            this.brand = rs.data.data;
+        addData:function(){
+          console.log(this.goods);
+          //非sku数据
+          console.log(this.attrData);
+          //sku数据
+          console.log(this.tableData);
+          //声明后台接参的attr
+          let attrs = [];
+          for (let i = 0; i < this.attrData.length; i++) {
+            let attrData = {};
+            attrData[this.attrData[i].name] = this.attrData[i].ckValues;
+            attrs.push(attrData);
+          }
+          //后台接参是string  将数组转为json字符串
+          this.goods.attr = JSON.stringify(attrs);
+          this.goods.sku = JSON.stringify(this.tableData);
+          //发送请求  把数据保存到数据库中
+          this.$axios.post("http://localhost:8080/api/product/addProduct",this.$qs.stringify(this.goods)).then(rs=>{
+            this.$message.success("添加成功");
           }).catch(err=>console.log(err));
-        },
-        handleAvatarSuccess:function (res, file) {
-          console.log(res);
-          this.goods.imgPath=res.filePath;
-          //显示赋值
-          this.imageUrl=res.filePath;
-        },
-        beforeAvatarUpload(file) {
-          //限制类型    name  来限制
-          const isJPG = file.type === 'image/jpeg';
-          const isLt2M = file.size / 1024 / 1024 < 4;
-
-          if (!isJPG) {
-            this.$message.error('上传头像图片只能是 JPG 格式!');
-          }
-          if (!isLt2M) {
-            this.$message.error('上传头像图片大小不能超过 2MB!');
-          }
-          return isJPG && isLt2M;
-        },
-        getAttrData:function (typeId) {
-          this.tableShow = false;
-          //清空数据
-          this.attData=[];
-          this.SKUData=[];
-          var data = {typeId:typeId};
-          //根据 typeId 查数据
-          this.$axios.post("http://localhost:8080/api/attribute/queryAttrByTypeId",this.$qs.stringify(data)).then(rs=>{
-            //定一个变量  把所有的属性数据都赋给它
-            let attrDatas = rs.data.data;
-            //判断分类是否有数据   更新 参数和规格
-            if (attrDatas.length >0 ){
-              //初始化  attData      SKUData
-              for (let i = 0; i < attrDatas.length; i++) {
-                //判断是否为sku属性
-                if (attrDatas[i].isSkU == 2){
-                  if (attrDatas[i].type != 3){
-                    attrDatas[i].ckValues = [];
-                    //发起请求 查询此属性对应的选项值
-                    var data = {attrId:attrDatas[i].id};
-                    this.$axios.post("http://localhost:8080/api/attrValue/queryAttrValue",this.$qs.stringify(data)).then(rs=>{
-                      attrDatas[i].values = rs.data.data;
-                      this.attData.push(attrDatas[i]);
-                    }).catch(err=>console.log(err));
-                  }else {
-                    this.attData.push(attrDatas[i]);
-                  }
-                }else {
-                  if (attrDatas[i].type != 3){
-                    //发起请求 查询此属性对应的选项值
-                    var data = {attrId:attrDatas[i].id};
-                    this.$axios.post("http://localhost:8080/api/attrValue/queryAttrValue",this.$qs.stringify(data)).then(rs=>{
-                      attrDatas[i].values = rs.data.data;
-                      attrDatas[i].ckValues = [];
-                      this.SKUData.push(attrDatas[i]);
-                    }).catch(err=>console.log(err));
-                  }else {
-                    attrDatas[i].ckValues = [];
-                    this.SKUData.push(attrDatas[i]);
-                  }
-                }
-              }
-            }else {
-              this.attData=[];
-              this.SKUData=[];
-            }
-          }).catch(err=>console.log(err));
-        },
-        formaterTypeData:function () {
-          this.$axios.get("http://localhost:8080/api/type/getData").then(rs => {
-            this.typeData = rs.data.data;
-            //先找到子节点的数据
-            this.getChildrenType();
-            //遍历所有的子节点
-            for (let i = 0; i < this.types.length; i++) {
-              // 全局变量   临时存 层级名称
-              this.typeName = "";
-              //处理子节点的name属性
-              this.chandleName(this.types[i]);
-              //给name重新赋值
-              this.types[i].name = this.typeName.split("/").reverse().join("/").substring(0,this.typeName.length-1);
-            }
-          }).catch(err => console.log(err));
-        },
-        //给我一个节点  得到层级name
-        chandleName:function(node){
-          //临界值
-          if (node.pid != 0){
-            this.typeName += "/"+node.name;
-            //上级节点
-            for (let i = 0; i <this.typeData.length; i++) {
-              if (node.pid == this.typeData[i].id){
-                this.chandleName(this.typeData[i]);
-                break;
-              }
-            }
-          }else {
-            this.typeName += "/"+node.name;
-          }
-        },getChildrenType:function(){
-          //遍历所有的节点数据
-          for (let i = 0; i <this.typeData.length; i++) {
-            let node = this.typeData[i];
-            this.isChildrenNode(node);
-          }
-        },
-        isChildrenNode:function(node){
-          //标识
-          let rs = true;
-          for (let i = 0; i < this.typeData.length; i++) {
-            if (node.id == this.typeData[i].pid){
-              rs = false;
-              break;
-            }
-          }
-          if (rs == true){
-            this.types.push(node);
-          }
         }
       }
     }
