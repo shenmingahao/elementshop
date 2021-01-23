@@ -380,6 +380,7 @@
           }).catch(err => console.log(err));
         },
         updateAttrForm: function () {
+          console.log(this.updateAttr);
           this.$axios.post("http://localhost:8080/api/attribute/updateAttribute", this.$qs.stringify(this.updateAttr)).then(rs => {
             //关闭弹窗
             this.updateFormFlag = false;

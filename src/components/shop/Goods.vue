@@ -6,6 +6,9 @@
         <el-step title="填写商品属性" ></el-step>
       </el-steps>
 
+
+
+
       <br>
       <br>
 
@@ -186,7 +189,6 @@
               imgPath:""
             },
             //用于图片赋值回显到框里
-
             imageUrl:"",
 
 
@@ -195,7 +197,7 @@
             attrData:[],   //非sku的属性数据
             SKUData:[], //sku属性数据
             typeData:[],//分类数据
-            tableShow:false,
+            tableShow:false,//是否让表格显示
             cols:[],//表动态列头
             tableData:[]//表格数据
           }
